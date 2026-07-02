@@ -24,6 +24,7 @@ const defineNotification = (sequelize) =>
           'reply',
           'follow',
           'follow_request',
+          'follow_accepted',
           'story_reaction',
           'story_reply',
           'message'

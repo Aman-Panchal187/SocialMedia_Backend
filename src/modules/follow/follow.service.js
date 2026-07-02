@@ -58,7 +58,7 @@ export const acceptRequest = async (currentUserId, requesterUsername) => {
   await notifyUser({
     recipientId: requester.id,
     actorId: currentUserId,
-    type: 'follow',
+    type: 'follow_accepted',
     entityType: 'user',
     entityId: currentUserId,
   });

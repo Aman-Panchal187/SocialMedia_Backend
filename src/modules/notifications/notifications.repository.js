@@ -1,7 +1,7 @@
 import { Op } from 'sequelize';
 import db from '../../models/index.js';
 
-const { Notification, User } = db;
+const { Notification, User, Follow } = db;
 
 export const actorAttrs = ['id', 'username', 'fullName', 'avatarUrl'];
 
@@ -50,3 +50,32 @@ export const markAllRead = (recipientId) =>
 export const findById = (notificationId) => Notification.findByPk(notificationId, {
   include: [{ model: User, as: 'actor', attributes: actorAttrs }],
 });
+
+export const findFollowStatusMap = async (recipientId, actorIds) => {
+  if (actorIds.length === 0) return new Map();
+  const rows = await Follow.findAll({
+    where: { followerId: { [Op.in]: actorIds }, followingId: recipientId },
+  });
+  return new Map(rows.map((row) => [row.followerId, row.status]));
+};
+
+// A given actor may have sent (and had rejected) several follow requests over time,
+// each with its own notification row. Only the single most recent follow_request
+// notification per actor reflects the current Follow row's status — older ones are
+// history and must not be rendered as actionable.
+export const findLatestFollowRequestNotificationIdByActor = async (recipientId, actorIds) => {
+  if (actorIds.length === 0) return new Map();
+  const rows = await Notification.findAll({
+    where: { recipientId, actorId: { [Op.in]: actorIds }, type: 'follow_request' },
+    attributes: ['id', 'actorId'],
+    order: [
+      ['createdAt', 'DESC'],
+      ['id', 'DESC'],
+    ],
+  });
+  const map = new Map();
+  for (const row of rows) {
+    if (!map.has(row.actorId)) map.set(row.actorId, row.id);
+  }
+  return map;
+};

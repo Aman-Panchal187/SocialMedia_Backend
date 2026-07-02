@@ -88,7 +88,7 @@ const assertPostVisible = async (post, viewerId) => {
   }
 };
 
-const serializePost = (post) => ({
+const serializePost = (post, { isLiked = false, isSaved = false } = {}) => ({
   id: post.id,
   type: post.type,
   caption: post.caption,
@@ -96,6 +96,8 @@ const serializePost = (post) => ({
   likeCount: post.likeCount,
   commentCount: post.commentCount,
   isCommentsDisabled: post.isCommentsDisabled,
+  isLiked,
+  isSaved,
   createdAt: post.createdAt,
   updatedAt: post.updatedAt,
   author: post.author
@@ -121,7 +123,12 @@ const serializePost = (post) => ({
 export const getPostById = async (postId, viewerId) => {
   const post = await postsRepo.findPostById(postId);
   await assertPostVisible(post, viewerId);
-  return serializePost(post);
+
+  const [likeRow, saveRow] = viewerId
+    ? await Promise.all([postsRepo.findLike(viewerId, postId), postsRepo.findSave(viewerId, postId)])
+    : [null, null];
+
+  return serializePost(post, { isLiked: Boolean(likeRow), isSaved: Boolean(saveRow) });
 };
 
 export const deletePost = async (postId, userId) => {
@@ -148,7 +155,19 @@ export const getFeed = async (userId, { limit: rawLimit, cursor: rawCursor }) =>
 
   const rows = await postsRepo.findFeedPosts({ authorIds, cursor, limit });
   const { items, nextCursor } = buildPaginatedResponse(rows, limit);
-  return { items: items.map(serializePost), nextCursor };
+
+  const postIds = items.map((post) => post.id);
+  const [likedIds, savedIds] = await Promise.all([
+    postsRepo.findLikedPostIds(userId, postIds),
+    postsRepo.findSavedPostIds(userId, postIds),
+  ]);
+
+  return {
+    items: items.map((post) =>
+      serializePost(post, { isLiked: likedIds.has(post.id), isSaved: savedIds.has(post.id) })
+    ),
+    nextCursor,
+  };
 };
 
 export const getPostsByUsername = async (username, viewerId, { limit: rawLimit, cursor: rawCursor }) => {
@@ -168,7 +187,19 @@ export const getPostsByUsername = async (username, viewerId, { limit: rawLimit, 
 
   const rows = await postsRepo.findPostsByUserId({ userId: targetUser.id, cursor, limit });
   const { items, nextCursor } = buildPaginatedResponse(rows, limit);
-  return { items: items.map(serializePost), nextCursor };
+
+  const postIds = items.map((post) => post.id);
+  const [likedIds, savedIds] = await Promise.all([
+    postsRepo.findLikedPostIds(viewerId, postIds),
+    postsRepo.findSavedPostIds(viewerId, postIds),
+  ]);
+
+  return {
+    items: items.map((post) =>
+      serializePost(post, { isLiked: likedIds.has(post.id), isSaved: savedIds.has(post.id) })
+    ),
+    nextCursor,
+  };
 };
 
 export const likePost = async (postId, userId) => {
@@ -212,12 +243,13 @@ export const unsavePost = async (postId, userId) => {
   await postsRepo.destroySave(existing);
 };
 
-const serializeComment = (comment, replyCount = 0) => ({
+const serializeComment = (comment, replyCount = 0, isLiked = false) => ({
   id: comment.id,
   postId: comment.postId,
   parentCommentId: comment.parentCommentId,
   content: comment.content,
   likeCount: comment.likeCount,
+  isLiked,
   createdAt: comment.createdAt,
   author: comment.author
     ? {
@@ -240,8 +272,16 @@ export const getComments = async (postId, viewerId, { limit: rawLimit, cursor: r
   const rows = await postsRepo.findTopLevelComments({ postId, cursor, limit });
   const { items, nextCursor } = buildPaginatedResponse(rows, limit);
 
-  const replyCounts = await postsRepo.countReplies(items.map((c) => c.id));
-  return { items: items.map((c) => serializeComment(c, replyCounts[c.id] || 0)), nextCursor };
+  const commentIds = items.map((c) => c.id);
+  const [replyCounts, likedCommentIds] = await Promise.all([
+    postsRepo.countReplies(commentIds),
+    postsRepo.findLikedCommentIds(viewerId, commentIds),
+  ]);
+
+  return {
+    items: items.map((c) => serializeComment(c, replyCounts[c.id] || 0, likedCommentIds.has(c.id))),
+    nextCursor,
+  };
 };
 
 export const getReplies = async (commentId, { limit: rawLimit, cursor: rawCursor }) => {

@@ -109,6 +109,27 @@ export const findPostsByUserId = async ({ userId, cursor, limit }) => {
 
 export const findLike = (userId, postId) => Like.findOne({ where: { userId, postId } });
 
+export const findLikedPostIds = async (userId, postIds) => {
+  if (!userId || postIds.length === 0) return new Set();
+  const rows = await Like.findAll({ where: { userId, postId: { [Op.in]: postIds } }, attributes: ['postId'] });
+  return new Set(rows.map((r) => r.postId));
+};
+
+export const findSavedPostIds = async (userId, postIds) => {
+  if (!userId || postIds.length === 0) return new Set();
+  const rows = await Save.findAll({ where: { userId, postId: { [Op.in]: postIds } }, attributes: ['postId'] });
+  return new Set(rows.map((r) => r.postId));
+};
+
+export const findLikedCommentIds = async (userId, commentIds) => {
+  if (!userId || commentIds.length === 0) return new Set();
+  const rows = await CommentLike.findAll({
+    where: { userId, commentId: { [Op.in]: commentIds } },
+    attributes: ['commentId'],
+  });
+  return new Set(rows.map((r) => r.commentId));
+};
+
 export const createLike = (userId, postId, t) => Like.create({ userId, postId }, { transaction: t });
 
 export const destroyLike = (likeRow, t) => likeRow.destroy({ transaction: t });

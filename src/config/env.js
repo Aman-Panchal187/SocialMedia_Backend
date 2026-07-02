@@ -63,7 +63,7 @@ const env = {
     host: validatedEnv.PGHOST,
     port: validatedEnv.PGPORT || 5432,
     database: isTest
-      ? `${validatedEnv.PGDATABASE || 'instagram_clone'}_test`
+      ? `${validatedEnv.PGDATABASE || 'photosphere'}_test`
       : validatedEnv.PGDATABASE,
     user: validatedEnv.PGUSER,
     password: validatedEnv.PGPASSWORD,

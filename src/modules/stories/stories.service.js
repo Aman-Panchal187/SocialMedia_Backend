@@ -93,7 +93,7 @@ export const createStory = async (userId, { caption, file }) => {
 
   const mediaType = deriveMediaType(file.mimetype);
   const result = await uploadBufferToCloudinary(file.buffer, {
-    folder: 'instagram-clone/stories',
+    folder: 'photosphere/stories',
     resource_type: mediaType === 'video' ? 'video' : 'image',
   });
 

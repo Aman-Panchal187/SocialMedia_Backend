@@ -41,7 +41,7 @@ export const createPost = async ({ userId, caption, hashtags, location, files })
   const uploadResults = await Promise.all(
     files.map((file, idx) =>
       uploadBufferToCloudinary(file.buffer, {
-        folder: 'instagram-clone/posts',
+        folder: 'photosphere/posts',
         resource_type: mediaTypes[idx] === 'video' ? 'video' : 'image',
       })
     )

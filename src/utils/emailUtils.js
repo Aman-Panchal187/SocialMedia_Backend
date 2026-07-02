@@ -42,7 +42,7 @@ const getTransporter = () => {
 export const sendEmail = async ({ to, subject, html, text }) => {
   const transporter = await getTransporter();
   const info = await transporter.sendMail({
-    from: '"Instagram Clone" <no-reply@instagram-clone.local>',
+    from: '"PhotoSphere" <no-reply@photosphere.local>',
     to,
     subject,
     text,

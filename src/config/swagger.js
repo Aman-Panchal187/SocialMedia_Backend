@@ -5,7 +5,7 @@ const swaggerSpec = swaggerJSDoc({
   definition: {
     openapi: '3.0.3',
     info: {
-      title: 'Instagram Clone API',
+      title: 'PhotoSphere API',
       version: '1.0.0',
       description: 'Phase 1 — Auth, Users, Posts, Follow',
     },

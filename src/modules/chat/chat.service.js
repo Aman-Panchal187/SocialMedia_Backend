@@ -135,7 +135,7 @@ export const sendMessage = async (conversationId, userId, { contentType, content
   } else {
     if (!file) throw ApiError.badRequest('An attachment file is required for this message type');
     const result = await uploadBufferToCloudinary(file.buffer, {
-      folder: 'instagram-clone/chat',
+      folder: 'photosphere/chat',
       resource_type: CONTENT_TYPE_TO_RESOURCE_TYPE[contentType],
     });
     mediaUrl = result.secure_url;

@@ -1,7 +1,7 @@
 {
-  "name": "instagram-clone-backend",
+  "name": "photosphere-backend",
   "version": "1.0.0",
-  "description": "Production-grade Instagram-clone backend (Phase 1: Auth, Users, Posts, Follow)",
+  "description": "Production-grade PhotoSphere backend (Phase 1: Auth, Users, Posts, Follow)",
   "type": "module",
   "main": "src/server.js",
   "scripts": {

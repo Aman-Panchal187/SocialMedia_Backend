@@ -64,7 +64,7 @@ export const updateAvatar = async (userId, file) => {
   if (!user) throw ApiError.notFound('User not found');
 
   const result = await uploadBufferToCloudinary(file.buffer, {
-    folder: 'instagram-clone/avatars',
+    folder: 'photosphere/avatars',
     resource_type: 'image',
     transformation: [{ width: 512, height: 512, crop: 'fill', gravity: 'face' }],
   });

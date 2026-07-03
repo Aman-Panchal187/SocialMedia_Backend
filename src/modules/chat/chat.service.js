@@ -180,6 +180,16 @@ export const markRead = async (conversationId, userId) => {
       logger.error(`Failed to emit chat:read to user:${otherParticipant.userId}: ${err.message}`);
     }
   }
+
+  // Also tell the reader's own other connections (e.g. another open tab) that
+  // their unread total just changed — otherwise only the tab that made this
+  // request finds out, via its own React Query cache patch.
+  try {
+    const count = await chatRepo.countUnreadTotal(userId);
+    getIO().to(`user:${userId}`).emit('chat:unread-count', { count });
+  } catch (err) {
+    logger.error(`Failed to emit chat:unread-count to user:${userId}: ${err.message}`);
+  }
 };
 
 export const getUnreadCount = async (userId) => {

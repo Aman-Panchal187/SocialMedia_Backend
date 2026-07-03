@@ -15,41 +15,37 @@ export const findMutualFollow = async (userIdA, userIdB) => {
   return Boolean(aFollowsB && bFollowsA);
 };
 
-// Small race window: if both users start a conversation with each other at the
-// exact same moment, this lookup can miss the other's in-flight insert and both
-// requests create a Conversation row. No uniqueness constraint exists on the
-// schema to prevent this (accepted trade-off at this scale, per the plan).
-export const findDirectConversationBetween = async (userIdA, userIdB) => {
-  const [rowsA, rowsB] = await Promise.all([
-    ConversationParticipant.findAll({
-      where: { userId: userIdA },
-      include: [{ model: Conversation, where: { isGroup: false }, required: true }],
-    }),
-    ConversationParticipant.findAll({
-      where: { userId: userIdB },
-      include: [{ model: Conversation, where: { isGroup: false }, required: true }],
-    }),
-  ]);
+const buildDirectKey = (userIdA, userIdB) => [userIdA, userIdB].sort().join(':');
 
-  const conversationIdsA = new Set(rowsA.map((row) => row.conversationId));
-  const match = rowsB.find((row) => conversationIdsA.has(row.conversationId));
-  if (!match) return null;
+export const findDirectConversationBetween = (userIdA, userIdB) =>
+  Conversation.findOne({ where: { directKey: buildDirectKey(userIdA, userIdB) } });
 
-  return Conversation.findByPk(match.conversationId);
+// Race-safe: a unique index on conversations.direct_key is the actual guard
+// against duplicate direct conversations. If two users both call this at the
+// same moment, one insert wins and the other hits a unique violation here,
+// which we treat as "already exists" and just look it up.
+export const createDirectConversation = async (userIdA, userIdB) => {
+  const directKey = buildDirectKey(userIdA, userIdB);
+  try {
+    return await db.sequelize.transaction(async (t) => {
+      const conversation = await Conversation.create({ isGroup: false, directKey }, { transaction: t });
+      await ConversationParticipant.bulkCreate(
+        [
+          { conversationId: conversation.id, userId: userIdA },
+          { conversationId: conversation.id, userId: userIdB },
+        ],
+        { transaction: t }
+      );
+      return conversation;
+    });
+  } catch (err) {
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      const existing = await Conversation.findOne({ where: { directKey } });
+      if (existing) return existing;
+    }
+    throw err;
+  }
 };
-
-export const createDirectConversation = (userIdA, userIdB) =>
-  db.sequelize.transaction(async (t) => {
-    const conversation = await Conversation.create({ isGroup: false }, { transaction: t });
-    await ConversationParticipant.bulkCreate(
-      [
-        { conversationId: conversation.id, userId: userIdA },
-        { conversationId: conversation.id, userId: userIdB },
-      ],
-      { transaction: t }
-    );
-    return conversation;
-  });
 
 export const touchConversation = (conversationId) =>
   Conversation.update({ updatedAt: new Date() }, { where: { id: conversationId } });
@@ -69,8 +65,19 @@ export const findConversationsForUser = async ({ userId, cursor, limit }) => {
   const conversationIds = participantRows.map((row) => row.conversationId);
   if (conversationIds.length === 0) return [];
 
+  // A conversation is only "real" to either participant once a message has
+  // actually been sent — visiting a mutual follower's profile and opening the
+  // chat page shouldn't make an empty thread appear in their inbox.
+  const messagedRows = await Message.findAll({
+    where: { conversationId: { [Op.in]: conversationIds } },
+    attributes: ['conversationId'],
+    group: ['conversationId'],
+  });
+  const conversationIdsWithMessages = messagedRows.map((row) => row.conversationId);
+  if (conversationIdsWithMessages.length === 0) return [];
+
   const where = {
-    id: { [Op.in]: conversationIds },
+    id: { [Op.in]: conversationIdsWithMessages },
     ...buildCursorWhere(cursor),
   };
 

@@ -19,6 +19,7 @@ const serializeMessage = (message) => ({
   contentType: message.contentType,
   content: message.content,
   mediaUrl: message.mediaUrl,
+  replyToStoryId: message.replyToStoryId,
   status: message.status,
   createdAt: message.createdAt,
 });

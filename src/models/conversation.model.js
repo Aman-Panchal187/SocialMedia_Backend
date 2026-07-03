@@ -14,6 +14,13 @@ const defineConversation = (sequelize) =>
         allowNull: false,
         defaultValue: false,
       },
+      // Canonical "smaller-id:larger-id" pair, set only for 1:1 (non-group)
+      // conversations. A unique index on this column is what actually prevents
+      // duplicate direct conversations between the same two users.
+      directKey: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
     },
     {
       tableName: 'conversations',

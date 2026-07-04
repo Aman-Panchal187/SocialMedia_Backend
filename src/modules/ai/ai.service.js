@@ -1,6 +1,7 @@
 import axios from 'axios';
 import env from '../../config/env.js';
 import logger from '../../config/logger.js';
+import ApiError from '../../utils/ApiError.js';
 
 // Hugging Face retired the classic dedicated image-captioning models
 // (Salesforce/blip-*, etc.) from its serverless Inference API — none of them
@@ -13,11 +14,14 @@ const PROMPT =
   'Write one short, engaging Instagram caption for this image (no hashtags, no quotes around it). Reply with only the caption text.';
 
 export const suggestCaption = async (fileBuffer, mimetype) => {
+  // Feature not configured at all — this is expected in some environments,
+  // not a failure, so it stays silent (null suggestion, no error).
   if (!env.huggingFace.apiKey) return null;
 
+  let response;
   try {
     const dataUrl = `data:${mimetype};base64,${fileBuffer.toString('base64')}`;
-    const response = await axios.post(
+    response = await axios.post(
       HF_ROUTER_URL,
       {
         model: HF_VISION_MODEL,
@@ -40,11 +44,17 @@ export const suggestCaption = async (fileBuffer, mimetype) => {
         timeout: 15000,
       }
     );
-
-    const content = response.data?.choices?.[0]?.message?.content;
-    return typeof content === 'string' && content.trim() ? content.trim().replace(/^"|"$/g, '') : null;
   } catch (err) {
-    logger.warn(`AI caption suggestion unavailable: ${err.message}`);
-    return null;
+    // The provider is configured but actually failed (network error, rate
+    // limit, provider outage, etc.) — unlike the "not configured" case above,
+    // this is a real failure the user should be told about rather than
+    // silently getting no suggestion.
+    logger.warn(`AI caption suggestion request failed: ${err.message}`);
+    throw ApiError.serviceUnavailable(
+      'The AI caption suggestion service is temporarily unavailable. Please try again shortly.'
+    );
   }
+
+  const content = response.data?.choices?.[0]?.message?.content;
+  return typeof content === 'string' && content.trim() ? content.trim().replace(/^"|"$/g, '') : null;
 };

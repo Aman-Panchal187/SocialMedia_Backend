@@ -75,6 +75,25 @@ router.get('/user/:username', optionalAuthenticate, validate(userPostsSchema), p
 
 /**
  * @openapi
+ * /posts/saved:
+ *   get:
+ *     tags: [Posts]
+ *     summary: Cursor-paginated grid of the current user's saved posts
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: cursor
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Saved posts page }
+ */
+router.get('/saved', authenticate, validate(feedQuerySchema), postsController.getSavedPosts);
+
+/**
+ * @openapi
  * /posts/comments/{commentId}/replies:
  *   get:
  *     tags: [Posts]

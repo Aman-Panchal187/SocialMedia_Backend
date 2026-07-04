@@ -124,10 +124,12 @@ export const deleteStory = async (storyId, userId) => {
 };
 
 export const getStoryFeed = async (userId) => {
+  // The current user's own stories are surfaced separately (the tray's
+  // dedicated "Your story" button, via GET /stories/user/:username) — including
+  // them here too would duplicate that ring in the followed-accounts list.
   const followingIds = await storiesRepo.findFollowingIds(userId);
-  const authorIds = Array.from(new Set([...followingIds, userId]));
 
-  const stories = await storiesRepo.findActiveStoriesForAuthors(authorIds);
+  const stories = await storiesRepo.findActiveStoriesForAuthors(followingIds);
   const viewedStoryIds = await fetchViewedStoryIdSet(stories.map((s) => s.id), userId);
 
   return { items: groupStoriesByAuthor(stories, viewedStoryIds) };
@@ -157,6 +159,10 @@ export const getUserStories = async (username, viewerId) => {
 export const viewStory = async (storyId, viewerId) => {
   const story = await storiesRepo.findStoryById(storyId);
   await assertStoryVisible(story, viewerId);
+
+  // The owner opening their own story (e.g. from the tray's own-story ring)
+  // must not count as a view or list themselves in their own viewers list.
+  if (story.userId === viewerId) return;
 
   const { created } = await storiesRepo.findOrCreateStoryView(storyId, viewerId);
   if (created) {
@@ -241,10 +247,14 @@ export const getStoryViewers = async (storyId, ownerId, { limit: rawLimit, curso
   // with the sort field (see the same fix applied to chat.service.js's listConversations).
   const { items, nextCursor } = buildPaginatedResponse(rows, limit, (row) => row.viewedAt);
 
+  const viewerIds = items.map((row) => row.viewerId);
+  const reactionsByViewerId = await storiesRepo.findStoryReactionsByViewerIds(storyId, viewerIds);
+
   return {
     items: items.map((row) => ({
       viewedAt: row.viewedAt,
       viewer: row.viewer ? serializeAuthor(row.viewer) : undefined,
+      reactionEmoji: reactionsByViewerId.get(row.viewerId) ?? null,
     })),
     nextCursor,
   };

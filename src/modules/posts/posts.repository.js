@@ -107,6 +107,30 @@ export const findPostsByUserId = async ({ userId, cursor, limit }) => {
   });
 };
 
+export const findSavedPosts = async ({ userId, cursor, limit }) => {
+  const where = {
+    userId,
+    ...buildCursorWhere(cursor),
+  };
+  return Save.findAll({
+    where,
+    include: [
+      {
+        model: Post,
+        include: [
+          { model: User, as: 'author', attributes: authorPublicAttrs },
+          { model: PostMedia, as: 'media', separate: true, order: [['position', 'ASC']] },
+        ],
+      },
+    ],
+    order: [
+      ['createdAt', 'DESC'],
+      ['id', 'DESC'],
+    ],
+    limit: limit + 1,
+  });
+};
+
 export const findLike = (userId, postId) => Like.findOne({ where: { userId, postId } });
 
 export const findLikedPostIds = async (userId, postIds) => {

@@ -38,6 +38,11 @@ export const getPostsByUsername = asyncHandler(async (req, res) => {
   new ApiResponse(res, 200, result);
 });
 
+export const getSavedPosts = asyncHandler(async (req, res) => {
+  const result = await postsService.getSavedPosts(req.user.id, req.query);
+  new ApiResponse(res, 200, result);
+});
+
 export const likePost = asyncHandler(async (req, res) => {
   await postsService.likePost(req.params.postId, req.user.id);
   new ApiResponse(res, 200, null, 'Post liked');

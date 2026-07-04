@@ -93,6 +93,15 @@ export const findStoryViewers = async ({ storyId, cursor, limit }) => {
   });
 };
 
+export const findStoryReactionsByViewerIds = async (storyId, viewerIds) => {
+  if (viewerIds.length === 0) return new Map();
+  const rows = await StoryReaction.findAll({
+    where: { storyId, userId: { [Op.in]: viewerIds } },
+    attributes: ['userId', 'reactionEmoji'],
+  });
+  return new Map(rows.map((row) => [row.userId, row.reactionEmoji]));
+};
+
 export const findExpiredStories = (limit) =>
   Story.findAll({
     where: { expiresAt: { [Op.lte]: new Date() } },

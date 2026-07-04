@@ -202,6 +202,27 @@ export const getPostsByUsername = async (username, viewerId, { limit: rawLimit, 
   };
 };
 
+export const getSavedPosts = async (userId, { limit: rawLimit, cursor: rawCursor }) => {
+  const limit = parseLimit(rawLimit);
+  const cursor = decodeCursor(rawCursor);
+
+  const rows = await postsRepo.findSavedPosts({ userId, cursor, limit });
+  // Saves are ordered by when they were saved, not the post's own createdAt, so
+  // the cursor must be built from that same field (mirrors the fix already
+  // applied to chat.service.js's listConversations for the same reason).
+  const { items, nextCursor } = buildPaginatedResponse(rows, limit, (row) => row.createdAt);
+
+  const posts = items.map((row) => row.Post).filter(Boolean);
+  const postIds = posts.map((post) => post.id);
+  const likedIds = await postsRepo.findLikedPostIds(userId, postIds);
+
+  return {
+    // Every post here is, by definition, saved by this viewer.
+    items: posts.map((post) => serializePost(post, { isLiked: likedIds.has(post.id), isSaved: true })),
+    nextCursor,
+  };
+};
+
 export const likePost = async (postId, userId) => {
   const post = await postsRepo.findPostById(postId);
   await assertPostVisible(post, userId);

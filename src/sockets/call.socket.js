@@ -165,7 +165,14 @@ export const registerCallHandlers = (io, socket) => {
         return;
       }
 
-      clearTimeout(record.timeoutHandle);
+      // Removed from the map synchronously, before the DB write below awaits
+      // — cleanup() used to run only after createCallRecord() resolved, which
+      // left a window where a near-simultaneous event for the same callId
+      // (the other party's disconnect, most commonly) could still find the
+      // record and persist a second, contradictory row for what was really
+      // one call (e.g. one row "rejected", another "missed"/"failed" for the
+      // same call a few seconds later).
+      cleanup(callId);
 
       await createCallRecord({
         callerId: record.callerId,
@@ -178,7 +185,6 @@ export const registerCallHandlers = (io, socket) => {
       });
 
       getIO().to(`user:${record.callerId}`).emit('call:rejected', { callId });
-      cleanup(callId);
     } catch (err) {
       logger.error(`call:reject failed for user:${socket.userId}: ${err.message}`);
       emitError(socket, 'Failed to reject call');
@@ -195,11 +201,10 @@ export const registerCallHandlers = (io, socket) => {
         return;
       }
 
-      clearTimeout(record.timeoutHandle);
+      cleanup(callId);
       await persistUnanswered(record, 'missed');
 
       getIO().to(`user:${record.calleeId}`).emit('call:cancelled', { callId });
-      cleanup(callId);
     } catch (err) {
       logger.error(`call:cancel failed for user:${socket.userId}: ${err.message}`);
       emitError(socket, 'Failed to cancel call');
@@ -239,7 +244,10 @@ export const registerCallHandlers = (io, socket) => {
       }
 
       const targetId = otherPartyId(record, socket.userId);
-      clearTimeout(record.timeoutHandle);
+      // See the comment in call:reject — removing this before the await
+      // closes the race window where a near-simultaneous disconnect for the
+      // other party could find the same record and persist it a second time.
+      cleanup(callId);
 
       if (record.status === 'active') {
         const durationSec = Math.round((Date.now() - record.answeredAt) / 1000);
@@ -257,7 +265,6 @@ export const registerCallHandlers = (io, socket) => {
       }
 
       getIO().to(`user:${targetId}`).emit('call:end', { callId });
-      cleanup(callId);
     } catch (err) {
       logger.error(`call:end failed for user:${socket.userId}: ${err.message}`);
     }
@@ -272,7 +279,7 @@ export const registerCallHandlers = (io, socket) => {
       if (!record) return;
 
       const targetId = otherPartyId(record, socket.userId);
-      clearTimeout(record.timeoutHandle);
+      cleanup(callId);
 
       if (record.status === 'active') {
         const durationSec = Math.round((Date.now() - record.answeredAt) / 1000);
@@ -290,7 +297,6 @@ export const registerCallHandlers = (io, socket) => {
       }
 
       getIO().to(`user:${targetId}`).emit('call:end', { callId });
-      cleanup(callId);
     } catch (err) {
       logger.error(`call disconnect cleanup failed for user:${socket.userId}: ${err.message}`);
     }

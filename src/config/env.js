@@ -9,6 +9,7 @@ const envSchema = Joi.object({
 
   DATABASE_URL: Joi.string().allow('').optional(),
   DATABASE_URL_TEST: Joi.string().allow('').optional(),
+  DB_SSL: Joi.boolean().default(false),
   PGHOST: Joi.string().allow('').optional(),
   PGPORT: Joi.alternatives().try(Joi.number(), Joi.string().valid('')).optional(),
   PGDATABASE: Joi.string().allow('').optional(),
@@ -59,6 +60,11 @@ const env = {
   isTest,
 
   databaseUrl: isTest ? validatedEnv.DATABASE_URL_TEST : validatedEnv.DATABASE_URL,
+  // Managed Postgres providers commonly used for free hosting (Neon,
+  // Supabase, etc.) require SSL and typically present a cert chain Node
+  // won't validate by default — rejectUnauthorized:false is the standard
+  // escape hatch recommended by those providers themselves.
+  dbSsl: validatedEnv.DB_SSL,
   pg: {
     host: validatedEnv.PGHOST,
     port: validatedEnv.PGPORT || 5432,

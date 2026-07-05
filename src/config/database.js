@@ -4,16 +4,20 @@ import logger from './logger.js';
 
 const sequelizeLogging = (msg) => logger.debug(msg);
 
+const dialectOptions = env.dbSsl ? { ssl: { require: true, rejectUnauthorized: false } } : {};
+
 const sequelize = env.databaseUrl
   ? new Sequelize(env.databaseUrl, {
       dialect: 'postgres',
       logging: env.isProduction ? false : sequelizeLogging,
+      dialectOptions,
     })
   : new Sequelize(env.pg.database, env.pg.user, env.pg.password, {
       host: env.pg.host,
       port: env.pg.port,
       dialect: 'postgres',
       logging: env.isProduction ? false : sequelizeLogging,
+      dialectOptions,
     });
 
 export const connectDatabase = async () => {

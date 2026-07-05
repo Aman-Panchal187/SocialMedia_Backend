@@ -1,5 +1,8 @@
 require('dotenv').config();
 
+const dialectOptions =
+  process.env.DB_SSL === 'true' ? { ssl: { require: true, rejectUnauthorized: false } } : {};
+
 function buildConfig(databaseUrl, discreteDb) {
   if (databaseUrl) {
     return {
@@ -7,6 +10,7 @@ function buildConfig(databaseUrl, discreteDb) {
       url: databaseUrl,
       dialect: 'postgres',
       logging: false,
+      dialectOptions,
     };
   }
   return {
@@ -17,6 +21,7 @@ function buildConfig(databaseUrl, discreteDb) {
     port: process.env.PGPORT || 5432,
     dialect: 'postgres',
     logging: false,
+    dialectOptions,
   };
 }
 

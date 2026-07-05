@@ -8,7 +8,12 @@ const REFRESH_COOKIE_NAME = 'refreshToken';
 const refreshCookieOptions = {
   httpOnly: true,
   secure: env.isProduction,
-  sameSite: 'strict',
+  // 'none' is required for the cookie to be sent at all once the frontend and
+  // backend are deployed on different domains (e.g. vercel.app / onrender.com)
+  // — browsers drop 'strict'/'lax' cookies on cross-site requests. 'none'
+  // requires secure:true, which only holds in production (localhost dev is
+  // plain http), so 'lax' remains correct for same-site local development.
+  sameSite: env.isProduction ? 'none' : 'lax',
   path: '/api/v1/auth',
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };

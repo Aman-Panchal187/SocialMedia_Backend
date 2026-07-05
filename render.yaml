@@ -1,0 +1,48 @@
+services:
+  - type: web
+    name: photosphere-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run migrate
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # DATABASE_URL: paste your Neon/Supabase connection string (must include
+      # ?sslmode=require, which those providers include by default).
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_SSL
+        value: true
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: COOKIE_SECRET
+        generateValue: true
+      # CORS_ORIGIN: set to your deployed frontend URL (e.g. Vercel), no
+      # trailing slash. Update this once the frontend is deployed.
+      - key: CORS_ORIGIN
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      # Optional — leave unset to disable AI caption suggestions.
+      - key: HUGGINGFACE_API_KEY
+        sync: false

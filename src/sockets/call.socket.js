@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { getIO } from '../config/socket.js';
+import env from '../config/env.js';
 import logger from '../config/logger.js';
 import { isUserOnline } from './presence.socket.js';
 import { findMutualFollow } from '../modules/chat/chat.repository.js';
@@ -59,6 +60,12 @@ export const registerCallHandlers = (io, socket) => {
 
       if (callType !== 'voice' && callType !== 'video') {
         emitError(socket, 'callType must be voice or video');
+        return;
+      }
+
+      const isCallTypeEnabled = callType === 'voice' ? env.calls.voiceEnabled : env.calls.videoEnabled;
+      if (!isCallTypeEnabled) {
+        emitError(socket, `${callType === 'voice' ? 'Voice' : 'Video'} calls are temporarily unavailable`);
         return;
       }
 

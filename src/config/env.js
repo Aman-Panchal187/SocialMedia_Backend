@@ -43,6 +43,13 @@ const envSchema = Joi.object({
   TURN_USERNAME: Joi.string().allow('').optional(),
   TURN_CREDENTIAL: Joi.string().allow('').optional(),
 
+  // Kill switches for the calling feature — flip to false to take voice/video
+  // calls offline (e.g. during an incident or a TURN provider outage)
+  // without a deploy. Enforced server-side in call:invite, so it can't be
+  // bypassed by an old/cached frontend build.
+  VOICE_CALL_ENABLED: Joi.boolean().default(true),
+  VIDEO_CALL_ENABLED: Joi.boolean().default(true),
+
   COOKIE_SECRET: Joi.string().min(8).required(),
 
   HUGGINGFACE_API_KEY: Joi.string().allow('').optional(),
@@ -113,6 +120,11 @@ const env = {
       .filter(Boolean),
     username: validatedEnv.TURN_USERNAME || '',
     credential: validatedEnv.TURN_CREDENTIAL || '',
+  },
+
+  calls: {
+    voiceEnabled: validatedEnv.VOICE_CALL_ENABLED,
+    videoEnabled: validatedEnv.VIDEO_CALL_ENABLED,
   },
 
   cookieSecret: validatedEnv.COOKIE_SECRET,

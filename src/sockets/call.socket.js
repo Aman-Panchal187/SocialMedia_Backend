@@ -80,7 +80,7 @@ export const registerCallHandlers = (io, socket) => {
       }
 
       if (!isUserOnline(callee.id)) {
-        emitError(socket, 'User is offline');
+        emitError(socket, `${callee.username} is offline`);
         return;
       }
 

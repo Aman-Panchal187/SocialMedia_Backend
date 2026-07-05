@@ -33,6 +33,16 @@ const envSchema = Joi.object({
   BREVO_API_KEY: Joi.string().allow('').optional(),
   BREVO_SENDER_EMAIL: Joi.string().allow('').optional(),
 
+  // TURN relay for WebRTC calls (e.g. a free Metered.ca account). STUN alone
+  // only works when both peers can find a direct route through their NATs —
+  // across different ISPs/mobile networks a relay is required or calls
+  // "connect" (signaling succeeds) but no audio/video ever flows.
+  // TURN_URLS is comma-separated, e.g.
+  //   turn:standard.relay.metered.ca:80,turn:standard.relay.metered.ca:443,turns:standard.relay.metered.ca:443?transport=tcp
+  TURN_URLS: Joi.string().allow('').optional(),
+  TURN_USERNAME: Joi.string().allow('').optional(),
+  TURN_CREDENTIAL: Joi.string().allow('').optional(),
+
   COOKIE_SECRET: Joi.string().min(8).required(),
 
   HUGGINGFACE_API_KEY: Joi.string().allow('').optional(),
@@ -94,6 +104,15 @@ const env = {
   brevo: {
     apiKey: validatedEnv.BREVO_API_KEY || '',
     senderEmail: validatedEnv.BREVO_SENDER_EMAIL || '',
+  },
+
+  turn: {
+    urls: (validatedEnv.TURN_URLS || '')
+      .split(',')
+      .map((url) => url.trim())
+      .filter(Boolean),
+    username: validatedEnv.TURN_USERNAME || '',
+    credential: validatedEnv.TURN_CREDENTIAL || '',
   },
 
   cookieSecret: validatedEnv.COOKIE_SECRET,

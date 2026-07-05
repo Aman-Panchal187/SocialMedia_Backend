@@ -27,4 +27,16 @@ router.use(authenticate);
  */
 router.get('/history', validate(historyQuerySchema), callsController.getCallHistory);
 
+/**
+ * @openapi
+ * /calls/ice-servers:
+ *   get:
+ *     tags: [Calls]
+ *     summary: STUN/TURN server configuration for WebRTC peer connections
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: ICE server list }
+ */
+router.get('/ice-servers', callsController.getIceServers);
+
 export default router;

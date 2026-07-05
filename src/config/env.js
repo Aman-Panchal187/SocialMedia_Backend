@@ -27,14 +27,9 @@ const envSchema = Joi.object({
   CLOUDINARY_API_KEY: Joi.string().allow('').optional(),
   CLOUDINARY_API_SECRET: Joi.string().allow('').optional(),
 
-  SMTP_HOST: Joi.string().allow('').optional(),
-  SMTP_PORT: Joi.alternatives().try(Joi.number(), Joi.string().valid('')).optional(),
-  SMTP_USER: Joi.string().allow('').optional(),
-  SMTP_PASS: Joi.string().allow('').optional(),
-
-  // Brevo's transactional email HTTP API (preferred over SMTP) — plain
-  // HTTPS on port 443, so it isn't affected by hosts that block outbound
-  // SMTP ports the way several free-tier PaaS providers do.
+  // Brevo's transactional email HTTP API — plain HTTPS on port 443, so it
+  // isn't affected by hosts that block outbound SMTP ports the way several
+  // free-tier PaaS providers do.
   BREVO_API_KEY: Joi.string().allow('').optional(),
   BREVO_SENDER_EMAIL: Joi.string().allow('').optional(),
 
@@ -94,13 +89,6 @@ const env = {
     cloudName: validatedEnv.CLOUDINARY_CLOUD_NAME,
     apiKey: validatedEnv.CLOUDINARY_API_KEY,
     apiSecret: validatedEnv.CLOUDINARY_API_SECRET,
-  },
-
-  smtp: {
-    host: validatedEnv.SMTP_HOST,
-    port: validatedEnv.SMTP_PORT,
-    user: validatedEnv.SMTP_USER,
-    pass: validatedEnv.SMTP_PASS,
   },
 
   brevo: {

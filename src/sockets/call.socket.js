@@ -231,6 +231,7 @@ export const registerCallHandlers = (io, socket) => {
   socket.on('call:offer', relay('call:offer'));
   socket.on('call:answer', relay('call:answer'));
   socket.on('call:ice-candidate', relay('call:ice-candidate'));
+  socket.on('call:mute-status', relay('call:mute-status'));
 
   socket.on('call:end', async (payload) => {
     try {

@@ -1,6 +1,33 @@
+import axios from 'axios';
 import nodemailer from 'nodemailer';
 import env from '../config/env.js';
 import logger from '../config/logger.js';
+
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
+
+const sendViaBrevo = async ({ to, subject, html, text }) => {
+  await axios.post(
+    BREVO_API_URL,
+    {
+      sender: { name: 'PhotoSphere', email: env.brevo.senderEmail },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+      textContent: text,
+    },
+    {
+      headers: {
+        'api-key': env.brevo.apiKey,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      // Brevo's API is plain HTTPS, but keep a sane timeout regardless —
+      // this now runs in the background (see auth.service.js), so there's
+      // no reason to let a slow response hang around.
+      timeout: 10000,
+    }
+  );
+};
 
 let transporterPromise = null;
 
@@ -24,7 +51,7 @@ const buildTransporter = async () => {
   }
 
   if (env.isProduction) {
-    throw new Error('SMTP credentials are required in production');
+    throw new Error('BREVO_API_KEY or SMTP credentials are required in production');
   }
 
   const testAccount = await nodemailer.createTestAccount();
@@ -47,6 +74,11 @@ const getTransporter = () => {
 };
 
 export const sendEmail = async ({ to, subject, html, text }) => {
+  if (env.brevo.apiKey && env.brevo.senderEmail) {
+    await sendViaBrevo({ to, subject, html, text });
+    return;
+  }
+
   const transporter = await getTransporter();
   const info = await transporter.sendMail({
     from: '"PhotoSphere" <no-reply@photosphere.local>',

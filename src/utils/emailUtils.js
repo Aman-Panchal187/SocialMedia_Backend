@@ -13,6 +13,13 @@ const buildTransporter = async () => {
       port: env.smtp.port || 587,
       secure: env.smtp.port === 465,
       auth: { user: env.smtp.user, pass: env.smtp.pass },
+      // Nodemailer's defaults (2min connection, 10min socket) are far too
+      // long for something now sent in the background — fail fast instead
+      // of leaving a doomed connection attempt hanging on hosts that
+      // throttle or block outbound SMTP.
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
   }
 

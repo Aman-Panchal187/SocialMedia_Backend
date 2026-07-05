@@ -41,7 +41,15 @@ const issueOtp = async ({ userId, email, purpose }) => {
     purpose,
     expiresAt: getOtpExpiryDate(),
   });
-  await sendOtpEmail(email, code, purpose);
+  // The OTP is already persisted at this point, so email delivery is
+  // best-effort only — it must never block the request that triggered it.
+  // SMTP can hang for a long time (connection/greeting/socket timeouts are
+  // all measured in minutes, not seconds) on networks that throttle or block
+  // outbound mail, which previously made register/resend/forgot-password
+  // hang indefinitely even though the OTP itself was created successfully.
+  sendOtpEmail(email, code, purpose).catch((err) => {
+    logger.error(`Failed to send OTP email to ${email} (${purpose}): ${err.message}`);
+  });
 };
 
 export const register = async ({ username, email, password }) => {
